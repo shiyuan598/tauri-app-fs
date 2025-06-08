@@ -1,160 +1,128 @@
+<template>
+  <div class="container">
+    <h1>🧾 JSON 编辑器（Tauri 桌面版）</h1>
+     
+    <div class="buttons">
+      <button @click="openFile">📂 打开 JSON 文件</button>
+      <button @click="saveFile" :disabled="!jsonContent.trim()">💾 保存</button>
+      <button @click="saveAsFile" :disabled="!jsonContent.trim()">💾 另存为</button>
+    </div>
+     
+    <p v-if="filePath"><strong>当前文件：</strong>{{ filePath }}</p>
+     
+    <textarea
+      v-model="jsonContent"
+      placeholder="请选择 JSON 文件或直接输入 JSON 内容..."
+      rows="20"
+      cols="80"
+    ></textarea>
+  </div>
+</template>
+
 <script setup>
-import { ref } from "vue";
-import { invoke } from "@tauri-apps/api/core";
+import { ref } from 'vue'
+import { open, save } from '@tauri-apps/plugin-dialog'
+import { readTextFile, writeTextFile } from '@tauri-apps/plugin-fs'
 
-const greetMsg = ref("");
-const name = ref("");
+const filePath = ref('')
+const jsonContent = ref('')
 
-async function greet() {
-  // Learn more about Tauri commands at https://tauri.app/develop/calling-rust/
-  greetMsg.value = await invoke("greet", { name: name.value });
+async function openFile() {
+  const path = await open({
+    filters: [{ name: 'JSON', extensions: ['json'] }]
+  })
+   
+  if (path) {
+    filePath.value = path
+    try {
+      const text = await readTextFile(path)
+      const parsed = JSON.parse(text)
+      jsonContent.value = JSON.stringify(parsed, null, 2)
+    } catch (err) {
+      alert('⚠️ 读取失败：' + err)
+    }
+  }
+}
+
+async function saveFile() {
+  if (!filePath.value) {
+    // 如果没有当前文件路径，则调用另存为
+    await saveAsFile()
+    return
+  }
+  
+  try {
+    const parsed = JSON.parse(jsonContent.value)
+    await writeTextFile(filePath.value, JSON.stringify(parsed, null, 2))
+    alert('✅ 已保存！')
+  } catch (err) {
+    alert('❌ 保存失败：' + err.message)
+  }
+}
+
+async function saveAsFile() {
+  if (!jsonContent.value.trim()) return
+  
+  try {
+    // 验证 JSON 格式
+    const parsed = JSON.parse(jsonContent.value)
+    
+    // 打开保存对话框
+    const savePath = await save({
+      filters: [{ name: 'JSON', extensions: ['json'] }],
+      defaultPath: filePath.value || 'untitled.json'
+    })
+    
+    if (savePath) {
+      await writeTextFile(savePath, JSON.stringify(parsed, null, 2))
+      filePath.value = savePath // 更新当前文件路径
+      alert('✅ 文件已保存到：' + savePath)
+    }
+  } catch (err) {
+    if (err instanceof SyntaxError) {
+      alert('❌ JSON 格式错误，请检查语法')
+    } else {
+      alert('❌ 保存失败：' + err.message)
+    }
+  }
 }
 </script>
 
-<template>
-  <main class="container">
-    <h1>Welcome to Tauri + Vue</h1>
-
-    <div class="row">
-      <a href="https://vitejs.dev" target="_blank">
-        <img src="/vite.svg" class="logo vite" alt="Vite logo" />
-      </a>
-      <a href="https://tauri.app" target="_blank">
-        <img src="/tauri.svg" class="logo tauri" alt="Tauri logo" />
-      </a>
-      <a href="https://vuejs.org/" target="_blank">
-        <img src="./assets/vue.svg" class="logo vue" alt="Vue logo" />
-      </a>
-    </div>
-    <p>Click on the Tauri, Vite, and Vue logos to learn more.</p>
-
-    <form class="row" @submit.prevent="greet">
-      <input id="greet-input" v-model="name" placeholder="Enter a name..." />
-      <button type="submit">Greet</button>
-    </form>
-    <p>{{ greetMsg }}</p>
-  </main>
-</template>
-
 <style scoped>
-.logo.vite:hover {
-  filter: drop-shadow(0 0 2em #747bff);
-}
-
-.logo.vue:hover {
-  filter: drop-shadow(0 0 2em #249b73);
-}
-
-</style>
-<style>
-:root {
-  font-family: Inter, Avenir, Helvetica, Arial, sans-serif;
-  font-size: 16px;
-  line-height: 24px;
-  font-weight: 400;
-
-  color: #0f0f0f;
-  background-color: #f6f6f6;
-
-  font-synthesis: none;
-  text-rendering: optimizeLegibility;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-  -webkit-text-size-adjust: 100%;
-}
-
 .container {
-  margin: 0;
-  padding-top: 10vh;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  text-align: center;
+  padding: 2rem;
+  font-family: sans-serif;
 }
 
-.logo {
-  height: 6em;
-  padding: 1.5em;
-  will-change: filter;
-  transition: 0.75s;
+textarea {
+  width: 100%;
+  font-family: monospace;
+  margin-top: 1rem;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  padding: 0.5rem;
 }
 
-.logo.tauri:hover {
-  filter: drop-shadow(0 0 2em #24c8db);
-}
-
-.row {
-  display: flex;
-  justify-content: center;
-}
-
-a {
-  font-weight: 500;
-  color: #646cff;
-  text-decoration: inherit;
-}
-
-a:hover {
-  color: #535bf2;
-}
-
-h1 {
-  text-align: center;
-}
-
-input,
-button {
-  border-radius: 8px;
-  border: 1px solid transparent;
-  padding: 0.6em 1.2em;
-  font-size: 1em;
-  font-weight: 500;
-  font-family: inherit;
-  color: #0f0f0f;
-  background-color: #ffffff;
-  transition: border-color 0.25s;
-  box-shadow: 0 2px 2px rgba(0, 0, 0, 0.2);
+.buttons {
+  margin-bottom: 1rem;
 }
 
 button {
+  margin-right: 1rem;
+  padding: 0.5em 1em;
+  border: none;
+  border-radius: 4px;
+  background-color: #007acc;
+  color: white;
   cursor: pointer;
 }
 
-button:hover {
-  border-color: #396cd8;
-}
-button:active {
-  border-color: #396cd8;
-  background-color: #e8e8e8;
+button:hover:not(:disabled) {
+  background-color: #005a9e;
 }
 
-input,
-button {
-  outline: none;
+button:disabled {
+  background-color: #ccc;
+  cursor: not-allowed;
 }
-
-#greet-input {
-  margin-right: 5px;
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    color: #f6f6f6;
-    background-color: #2f2f2f;
-  }
-
-  a:hover {
-    color: #24c8db;
-  }
-
-  input,
-  button {
-    color: #ffffff;
-    background-color: #0f0f0f98;
-  }
-  button:active {
-    background-color: #0f0f0f69;
-  }
-}
-
 </style>
