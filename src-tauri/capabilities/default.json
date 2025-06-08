@@ -8,8 +8,6 @@
     "opener:default",
     "dialog:default",
     
-    
-    
     "fs:read-all",
     "fs:write-all"
   ]

@@ -1,20 +1,4 @@
-.output-path {
-  margin-bottom: 1rem;
-}
-
-.output-path label {
-  display: inline-block;
-  width: 80px;
-  font-weight: bold;
-}
-
-.path-display {
-  font-family: monospace;
-  background-color: #f5f5f5;
-  padding: 0.5rem;
-  border-radius: 4px;
-  border: 1px solid #ddd;
-}<template>
+<template>
   <div class="container">
     <h1>🧾 JSON 编辑器（Tauri 桌面版）</h1>
      
