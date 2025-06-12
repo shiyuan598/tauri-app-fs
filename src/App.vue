@@ -29,11 +29,31 @@
 import { ref, onMounted } from 'vue'
 import { open } from '@tauri-apps/plugin-dialog'
 import { readTextFile, writeTextFile } from '@tauri-apps/plugin-fs'
+import { publicDir, appDataDir } from '@tauri-apps/api/path'
 
 const filePath = ref('')
 const jsonContent = ref('')
 const outputDir = ref('') // 选择的输出目录
 
+onMounted(async()=>{
+    // 读写固定目录下的文件
+    const publicDirStr = await publicDir()
+    const path = `${publicDirStr}/a.txt`
+    console.info("path:", path);
+    const text = await readTextFile(path);
+    console.info("读到文件1：", text);
+    console.info("读到文件2：", await readTextFile("/Users/wangshiyuan/code/aa.txt"));
+    writeTextFile(`/Users/wangshiyuan/code/b.txt`, "Hello World2");
+    writeTextFile(`${publicDirStr}/b.txt`, "Hello World2");
+    const appDataDirStr = await appDataDir();
+    console.info("appDataDirStr:", appDataDirStr);
+
+    fetch('https://jsonplaceholder.typicode.com/todos/1')
+      .then(response => response.json())
+      .then(json => console.log("请求网络数据：", json))
+})
+
+// 通过文件对话框读取文件
 async function openFile() {
   const path = await open({
     filters: [{ name: 'JSON', extensions: ['json'] }]
@@ -51,6 +71,7 @@ async function openFile() {
   }
 }
 
+// 选择目录
 async function selectOutputDir() {
   const selectedDir = await open({
     directory: true,
@@ -63,6 +84,7 @@ async function selectOutputDir() {
   }
 }
 
+// 通过对话框保存文件
 async function saveFile() {
   if (!filePath.value) {
     // 如果没有当前文件路径，则保存到选择的目录
