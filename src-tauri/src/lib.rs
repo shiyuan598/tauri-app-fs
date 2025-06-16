@@ -8,6 +8,7 @@ fn greet(name: &str) -> String {
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
+        .plugin(tauri_plugin_clipboard_manager::init())
         .setup(|app| {
             // 获取主窗口并最大化 👇
             let window = app.get_webview_window("main").unwrap();

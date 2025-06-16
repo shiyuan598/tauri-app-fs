@@ -30,6 +30,10 @@ import { ref, onMounted } from 'vue'
 import { open } from '@tauri-apps/plugin-dialog'
 import { readTextFile, writeTextFile } from '@tauri-apps/plugin-fs'
 import { publicDir, appDataDir } from '@tauri-apps/api/path'
+import {getName as getAppName} from '@tauri-apps/api/app'
+import {getCurrentWindow} from '@tauri-apps/api/window'
+import { writeText, readText } from '@tauri-apps/plugin-clipboard-manager';
+import { Menu } from '@tauri-apps/api/menu';
 
 const filePath = ref('')
 const jsonContent = ref('')
@@ -38,20 +42,44 @@ const outputDir = ref('') // 选择的输出目录
 onMounted(async()=>{
     // 读写固定目录下的文件
     const publicDirStr = await publicDir()
-    const path = `${publicDirStr}/a.txt`
+    const path = `${publicDirStr}\\a.txt`
     console.info("path:", path);
     const text = await readTextFile(path);
     console.info("读到文件1：", text);
-    console.info("读到文件2：", await readTextFile("/Users/wangshiyuan/code/aa.txt"));
-    writeTextFile(`/Users/wangshiyuan/code/b.txt`, "Hello World2");
+    console.info("读到文件2：", await readTextFile("D:\\test\\aa.txt"));
+    writeTextFile(`D:\\test\\b.txt`, "Hello World2");
     writeTextFile(`${publicDirStr}/b.txt`, "Hello World2");
     const appDataDirStr = await appDataDir();
     console.info("appDataDirStr:", appDataDirStr);
 
     fetch('https://jsonplaceholder.typicode.com/todos/1')
       .then(response => response.json())
-      .then(json => console.log("请求网络数据：", json))
+      .then(json => console.log("请求网络数据：", JSON.stringify(json)))
+
+    const appName = await getAppName()
+    await writeText('Tauri is awesome!' + appName);
+    console.info("写入剪切板");
+
+    createMenu();
 })
+
+const createMenu = async () => {
+  const menu = await Menu.new({
+    items: [
+      {
+        id: 'quit',
+        text: 'Quit',
+        action: () => {
+          console.log('quit pressed');
+          getCurrentWindow().close();
+        },
+      },
+    ],
+  });
+  menu.setAsAppMenu().then((res) => {    
+    console.log('menu set success', res);
+  });
+}
 
 // 通过文件对话框读取文件
 async function openFile() {
